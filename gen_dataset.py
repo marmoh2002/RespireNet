@@ -84,9 +84,8 @@ class CoswaraCovidDataset:
         image *= 255
         return image.astype(np.float32)
 
-    def create_features(self, audio, label):  # Change to take two arguments
-        # Remove the tuple unpacking line - now we have separate audio and label
-
+    def create_features(self, audio, label):  # Remove the feature parameter
+        # Directly use audio and label parameters
         audio = tf.cast(audio, tf.float32)
         audio = tf.numpy_function(butter_bandpass_filter,
                                   inp=[audio, lowcut, highcut, fs],
@@ -117,10 +116,9 @@ class CoswaraCovidDataset:
                                   Tout=tf.float32)
 
         image = tf.cast(image, tf.float32) / 255.0
-
         image = tf.expand_dims(image, axis=-1)
 
-        # Convert label to TensorFlow operations
+        # Convert label processing to TensorFlow operations
         label = tf.cond(
             tf.equal(label, 0),
             lambda: tf.constant(0),
@@ -142,21 +140,21 @@ class CoswaraCovidDataset:
                 split=self.split,
                 data_dir=self.data_dir,
                 shuffle_files=True,
-                as_supervised=True  # This returns (audio, label) tuples
+                as_supervised=True
             )
             print(
                 f"Loaded dataset split '{self.split}' with config '{config_name}'.")
 
-        # Map with two arguments directly
-        data = self.dataset.map(self.create_features,  # Now matches the signature
-                                num_parallel_calls=tf.data.AUTOTUNE)
+        # Map with lambda that passes both audio and label
+        data = self.dataset.map(
+            lambda audio, label: self.create_features(audio, label),
+            num_parallel_calls=tf.data.AUTOTUNE
+        )
 
-        # Remove duplicate shuffle
-        # data = data.shuffle(BATCH_SIZE * 20)  # REMOVE THIS LINE
+        # Remove the duplicate shuffle call
+        # data = data.shuffle(BATCH_SIZE * 20)  # Remove this line
 
-        # Keep this shuffle instead
         data = data.shuffle(self.BATCH_SIZE * 10)
-
         if self.split == 'train':
             data = data.repeat()
         data = data.batch(self.BATCH_SIZE)
