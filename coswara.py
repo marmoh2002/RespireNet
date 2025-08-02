@@ -101,7 +101,7 @@ class Coswara(tfds.core.GeneratorBasedBuilder):
         # Setup logging to a file to keep the console clean
         log_file = '/kaggle/working/generator_debug.log'
         # Clear log file for the first run (train split)
-        if 'train' in str(path) and Path(log_file).exists():
+        if 'train' in str(path) and pathlib.Path(log_file).exists():
             open(log_file, 'w').close()
 
         logging.basicConfig(filename=log_file, filemode='a', level=logging.INFO,
