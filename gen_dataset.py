@@ -137,13 +137,18 @@ class CoswaraCovidDataset:
             lambda: tf.constant(1)
         )
         label = tf.one_hot(label, depth=2)
+        print(
+            f"Processed audio shape: {tf.shape(audio)}, label: {label.numpy()}")
 
         return image, label
 
     def get_dataset(self):
         """Builds and returns the tf.data.Dataset."""
         if self.dataset is None:
+
             config_name = f'coughs-skip{self.skip}-{"" if self.mixup else "no"}mixup'
+            print(
+                f"Loading dataset split '{self.split}' with config '{config_name}'...")
             self.dataset = tfds.load(
                 'coswara',
                 builder_kwargs={'config': config_name},
@@ -158,6 +163,9 @@ class CoswaraCovidDataset:
 
         # The dataset should now yield tuples of (audio, label).
         # We can map over the dataset directly.
+        print("Mapping dataset to create features...")
+        # Ensure the dataset is not None before mapping
+
         data = self.dataset.map(lambda x, y: self.create_features(
             [x, y]), num_parallel_calls=tf.data.AUTOTUNE).shuffle(BATCH_SIZE * 20)
 
