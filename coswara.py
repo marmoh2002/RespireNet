@@ -98,9 +98,10 @@ class Coswara(tfds.core.GeneratorBasedBuilder):
 
     def _generate_examples(self, path):
         """Yields examples and logs its progress."""
-        log_file = '/kaggle/working/generator.log'
+        # Setup logging to a file to keep the console clean
+        log_file = '/kaggle/working/generator_debug.log'
         # Clear log file for the first run (train split)
-        if path.name == 'train' and pathlib.Path(log_file).exists():
+        if 'train' in str(path) and Path(log_file).exists():
             open(log_file, 'w').close()
 
         logging.basicConfig(filename=log_file, filemode='a', level=logging.INFO,
@@ -111,62 +112,78 @@ class Coswara(tfds.core.GeneratorBasedBuilder):
 
         if not path.exists():
             logging.error(f"Path does not exist: {path}")
+            # Stop if the base path (e.g., .../dataset/train) doesn't exist
             return
 
-        # For simplicity in debugging, we'll temporarily disable mixup logic
-        file_list = list(path.iterdir())
-        logging.info(f"Found {len(file_list)} items in the directory.")
+        # Get a list of all items in the directory
+        all_items = list(path.iterdir())
+        logging.info(f"Found {len(all_items)} items in the directory.")
+        if not all_items:
+            logging.warning(
+                "The directory is empty. No examples can be generated.")
+            return
 
         total_yielded = 0
-        for user_dir in file_list:
+        for user_dir in all_items:
             logging.info(f"Processing item: {user_dir.name}")
             if not user_dir.is_dir():
-                logging.warning(f"  -> Item is not a directory, skipping.")
+                logging.warning(f"  -> SKIPPING: Item is not a directory.")
                 continue
 
+            # --- Define file paths ---
             label_file = user_dir / 'label.txt'
-            wav_files = list(user_dir.glob('*.wav'))
             metadata_file = user_dir / 'metadata.csv'
+            # Look for any .wav file
+            wav_files = list(user_dir.glob('*.wav'))
 
+            # --- DETAILED VALIDATION CHECKS ---
             if not label_file.exists():
                 logging.warning(
-                    f"  -> FAIL: 'label.txt' not found in {user_dir.name}.")
+                    f"  -> SKIPPING: 'label.txt' not found in {user_dir.name}.")
                 continue
-            if not all([label_file.exists(), wav_files, metadata_file.exists()]):
+            if not metadata_file.exists():
                 logging.warning(
-                    f"Skipping {user_dir.name} due to missing files.")
+                    f"  -> SKIPPING: 'metadata.csv' not found in {user_dir.name}.")
+                continue
+            if not wav_files:
+                logging.warning(
+                    f"  -> SKIPPING: No '.wav' files found in {user_dir.name}.")
                 continue
 
-            audio_file = wav_files[0]
+            # If we get here, all files exist. Now process them.
+            audio_file = wav_files[0]  # Use the first .wav file found
             try:
+                # Check audio duration
+                duration = AudioSegment.from_file(audio_file).duration_seconds
+                if duration < self.builder_config.skip:
+                    logging.warning(
+                        f"  -> SKIPPING: Duration for {user_dir.name} is {duration:.2f}s, which is less than the required {self.builder_config.skip}s.")
+                    continue
+
+                # If all checks pass, read data and yield
                 metadata = pd.read_csv(metadata_file).iloc[0]
                 age = int(metadata['age'])
-                # Ensure lowercase for consistency
                 sex = metadata['sex'].lower()
+                label = open(label_file).read().strip()
 
-                duration = AudioSegment.from_file(audio_file).duration_seconds
-                if duration >= self.builder_config.skip:
-                    logging.info(
-                        f"  -> SUCCESS: Yielding {user_dir.name} (duration: {duration:.2f}s)")
-                    total_yielded += 1
-                    yield user_dir.name, {
-                        'label': LABEL_MAP[open(label_file).read().strip()],
-                        'audio': audio_file,
-                        'user_id': user_dir.name,
-                        'age': age,
-                        'sex': sex,
-                    }
-                else:
-                    logging.warning(
-                        f"  -> FAIL: Duration for {user_dir.name} is {duration:.2f}s, required {self.builder_config.skip}s.")
+                logging.info(f"  -> SUCCESS: Yielding {user_dir.name}")
+                total_yielded += 1
+                yield user_dir.name, {
+                    'label': LABEL_MAP[label],
+                    'audio': audio_file,
+                    'user_id': user_dir.name,
+                    'age': age,
+                    'sex': sex,
+                }
+
             except Exception as e:
                 logging.error(
-                    f"  -> CRITICAL FAIL: Could not process audio file {audio_file}. Error: {e}")
+                    f"  -> CRITICAL FAIL: Could not process files in {user_dir.name}. Error: {e}")
 
         logging.info(
             f"--- Generator finished for split: {path.name}. Total yielded: {total_yielded} ---")
-
     # Keep the rest of the file (_get_nonempty_chunk_list, _generate_mixup_examples) as it was
+
     def _get_nonempty_chunk_list(self, users):
         chunks = []
         user = None
