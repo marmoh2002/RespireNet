@@ -85,60 +85,43 @@ class CoswaraCovidDataset:
         return image.astype(np.float32)
 
     def create_features(self, feature):
-        # Handle unpacking correctly - use indexing instead of tuple unpacking
-        audio = feature[0]  # First element is audio data
-        label = feature[1]  # Second element is label
+        audio, label = feature
 
         audio = tf.cast(audio, tf.float32)
-        audio.set_shape([None])
-        audio = tf.numpy_function(
-            butter_bandpass_filter,
-            inp=[audio, lowcut, highcut, fs],
-            Tout=tf.double
-        )
-
-        audio, _ = tf.numpy_function(
-            librosa.effects.trim,
-            inp=[audio, 20],
-            Tout=[tf.double, tf.int64]
-        )
-
-        # Fix typo: LENGHT -> LENGTH (assuming constant exists)
-        if tf.shape(audio)[0] >= LENGTH:
-            audio = audio[:LENGTH]
+        audio = tf.numpy_function(butter_bandpass_filter, 
+                                inp=[audio, lowcut, highcut, fs], 
+                                Tout=tf.double)
+        
+        audio, _ = tf.numpy_function(librosa.effects.trim, 
+                                    inp=[audio, 20], 
+                                    Tout=[tf.double, tf.int64])
+        
+        if tf.shape(audio)[0] >= LENGHT:
+            audio = audio[:LENGHT]
         else:
+            diff = LENGHT - tf.shape(audio)[0]
             if self.pad_with_repeat:
-                audio = tf.pad(audio,
-                               paddings=[[0, LENGTH - tf.shape(audio)[0]]],
-                               mode='SYMMETRIC')
+                n_repetitions = tf.math.floordiv(LENGHT, tf.shape(audio)[0])
+                if n_repetitions > 0:
+                    audio = tf.tile(audio, [n_repetitions])
+                audio = tf.pad(audio, paddings=[[0, LENGHT - tf.shape(audio)[0]]], mode='SYMMETRIC')
             else:
-                audio = tf.pad(audio,
-                               paddings=[[0, LENGTH - tf.shape(audio)[0]]],
-                               mode='CONSTANT')
-
+                audio = tf.pad(audio, paddings=[[0, diff]], mode='CONSTANT')
+        
         if self.split == 'train':
             audio = self.augment_data(audio)
-
-        image = tf.numpy_function(
-            self.create_melspectrogram,
-            inp=[audio],
-            Tout=tf.float32
-        )
-
+        
+        image = tf.numpy_function(self.create_melspectrogram,
+                                    inp=[audio],
+                                    Tout=tf.float32)
+        
         image = tf.cast(image, tf.float32) / 255.0
-        image = tf.expand_dims(image, axis=-1)
-        # Maintain static shape for batching
-        image.set_shape([n_mels, None, 1])
 
-        # Convert label processing to TensorFlow operations
-        label = tf.cond(
-            tf.equal(label, 0),
-            lambda: tf.constant(0),
-            lambda: tf.constant(1)
-        )
+        image = tf.expand_dims(image, axis=-1)
+        
+        # label = 0 if subject is healthy, otherwise it's 1
+        label = 0 if label == 0 else 1
         label = tf.one_hot(label, depth=2)
-        print(
-            f"Processed audio shape: {tf.shape(audio)}, label: {label.numpy()}")
 
         return image, label
 
