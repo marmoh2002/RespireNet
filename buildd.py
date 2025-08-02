@@ -27,6 +27,8 @@ print("\nVisualizing a batch of spectrograms...")
 
 # Get one batch from the dataset
 for images, labels in dataset.take(1):
+    print(
+        f"Batch size: {images.shape[0]}, Image shape: {images.shape}, Labels shape: {labels.shape}")
     plt.figure(figsize=(15, 10))
     for i in range(min(9, images.shape[0])):  # Display up to 9 images
         ax = plt.subplot(3, 3, i + 1)
