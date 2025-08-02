@@ -76,7 +76,7 @@ class CoswaraCovidDataset:
         image = librosa.feature.melspectrogram(y=audio_np.astype(np.float32),
                                                sr=fs, n_mels=n_mels,
                                                fmin=f_min, fmax=f_max,
-                                               n_fft=nfft, hop_LENGHT=hop)
+                                               n_fft=nfft, hop_length=hop)
         image = librosa.power_to_db(image, ref=np.max)
         with np.errstate(divide='ignore', invalid='ignore'):
             image = np.nan_to_num(
