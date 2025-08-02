@@ -84,8 +84,13 @@ class CoswaraCovidDataset:
         image *= 255
         return image.astype(np.float32)
 
-    def create_features(self, audio, label):
+    def create_features(self, features_dict):
         # Cast to float32 and apply bandpass filter
+        audio = features_dict['audio']
+        label = features_dict['label']
+        age = tf.cast(features_dict['age'], tf.float32)
+        sex = tf.cast(features_dict['sex'], tf.int32)  # Now an integer index
+
         audio = tf.cast(audio, tf.float32)
         audio = tf.numpy_function(
             butter_bandpass_filter,
@@ -131,6 +136,15 @@ class CoswaraCovidDataset:
         # Normalize and format image
         image = tf.cast(image, tf.float32) / 255.0
         image = tf.expand_dims(image, axis=-1)
+        # Normalize age (e.g., divide by 100)
+        age_normalized = age / 100.0
+
+        # One-hot encode sex (assuming 3 classes: male, female, other)
+        sex_one_hot = tf.one_hot(sex, depth=3)
+
+        # Combine tabular features into a single vector
+        tabular_features = tf.concat(
+            [tf.expand_dims(age_normalized, axis=0), sex_one_hot], axis=0)
 
         # Convert label to one-hot encoding
         label = tf.cond(
@@ -140,7 +154,7 @@ class CoswaraCovidDataset:
         )
         label = tf.one_hot(label, depth=2)
 
-        return image, label
+        return {'image_input': image, 'tabular_input': tabular_features}, label
 
     def get_dataset(self):
         """Builds and returns the tf.data.Dataset."""
@@ -162,25 +176,28 @@ class CoswaraCovidDataset:
             print("Dataset element spec:", self.dataset.element_spec)
 
         # Robust handling of dataset structure
-        if 'audio' in self.dataset.element_spec and 'label' in self.dataset.element_spec:
-            # Standard structure
-            data = self.dataset.map(
-                lambda x: self.create_features(x['audio'], x['label']),
-                num_parallel_calls=tf.data.AUTOTUNE
-            )
-        elif 'features' in self.dataset.element_spec and 'target' in self.dataset.element_spec:
-            # Alternative structure
-            data = self.dataset.map(
-                lambda x: self.create_features(x['features'], x['target']),
-                num_parallel_calls=tf.data.AUTOTUNE
-            )
-        else:
-            # Fallback to first two elements
-            data = self.dataset.map(
-                lambda x: self.create_features(x[0], x[1]),
-                num_parallel_calls=tf.data.AUTOTUNE
-            )
-
+        # if 'audio' in self.dataset.element_spec and 'label' in self.dataset.element_spec:
+        #     # Standard structure
+        #     data = self.dataset.map(
+        #         lambda x: self.create_features(x['audio'], x['label']),
+        #         num_parallel_calls=tf.data.AUTOTUNE
+        #     )
+        # elif 'features' in self.dataset.element_spec and 'target' in self.dataset.element_spec:
+        #     # Alternative structure
+        #     data = self.dataset.map(
+        #         lambda x: self.create_features(x['features'], x['target']),
+        #         num_parallel_calls=tf.data.AUTOTUNE
+        #     )
+        # else:
+        #     # Fallback to first two elements
+        #     data = self.dataset.map(
+        #         lambda x: self.create_features(x[0], x[1]),
+        #         num_parallel_calls=tf.data.AUTOTUNE
+        #     )
+        data = self.dataset.map(
+            self.create_features,  # Pass the method directly
+            num_parallel_calls=tf.data.AUTOTUNE
+        )
         data = data.shuffle(BATCH_SIZE * 10)
         if self.split == 'train':
             data = data.repeat()
