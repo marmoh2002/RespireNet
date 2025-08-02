@@ -132,28 +132,39 @@ class CoswaraCovidDataset:
         """Builds and returns the tf.data.Dataset."""
         if self.dataset is None:
             config_name = f'coughs-skip{self.skip}-{"" if self.mixup else "no"}mixup'
-            print(
-                f"Loading dataset split '{self.split}' with config '{config_name}'...")
+            print(f"Loading dataset split '{self.split}' with config '{config_name}'...")
             self.dataset = tfds.load(
                 'coswara',
                 builder_kwargs={'config': config_name},
                 split=self.split,
                 data_dir=self.data_dir,
                 shuffle_files=True,
-                as_supervised=True
             )
-            print(
-                f"Loaded dataset split '{self.split}' with config '{config_name}'.")
+            print(f"Loaded dataset split '{self.split}' with config '{config_name}'.")
+            
+            # Debug: print dataset structure
+            print("Dataset element spec:", self.dataset.element_spec)
 
-        # Map with lambda that passes both audio and label
-        data = self.dataset.map(
-            lambda audio, label: self.create_features(audio, label),
-            num_parallel_calls=tf.data.AUTOTUNE
-        )
-
-        # Remove the duplicate shuffle call
-        # data = data.shuffle(BATCH_SIZE * 20)  # Remove this line
-
+        # Robust handling of dataset structure
+        if 'audio' in self.dataset.element_spec and 'label' in self.dataset.element_spec:
+            # Standard structure
+            data = self.dataset.map(
+                lambda x: self.create_features(x['audio'], x['label']),
+                num_parallel_calls=tf.data.AUTOTUNE
+            )
+        elif 'features' in self.dataset.element_spec and 'target' in self.dataset.element_spec:
+            # Alternative structure
+            data = self.dataset.map(
+                lambda x: self.create_features(x['features'], x['target']),
+                num_parallel_calls=tf.data.AUTOTUNE
+            )
+        else:
+            # Fallback to first two elements
+            data = self.dataset.map(
+                lambda x: self.create_features(x[0], x[1]),
+                num_parallel_calls=tf.data.AUTOTUNE
+            )
+        
         data = data.shuffle(self.BATCH_SIZE * 10)
         if self.split == 'train':
             data = data.repeat()
