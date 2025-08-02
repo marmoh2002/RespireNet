@@ -5,10 +5,10 @@ import librosa
 import numpy as np
 
 import tensorflow as tf
-import data.coswara.coswara
+import coswara
 import tensorflow_datasets as tfds
 
-from utils.filters import butter_bandpass_filter
+from filters import butter_bandpass_filter
 
 lowcut = 50.0
 highcut = 8000.0

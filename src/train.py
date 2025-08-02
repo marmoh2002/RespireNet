@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow.python.keras.backend import binary_crossentropy
 
 from models.respirenet import respirenet
-from data.gen_dataset import CoswaraCovidDataset
+from gen_dataset import CoswaraCovidDataset
 
 # TODO: find a way to evaluate also precision, recall and f1 score
 # TODO: write train notebook displaying history and confusion matrix
