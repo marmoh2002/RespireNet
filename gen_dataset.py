@@ -108,13 +108,13 @@ class CoswaraCovidDataset:
             audio = audio[:LENGTH]
         else:
             if self.pad_with_repeat:
-                audio = tf.pad(audio, 
-                            paddings=[[0, LENGTH - tf.shape(audio)[0]]],
-                            mode='SYMMETRIC')
+                audio = tf.pad(audio,
+                               paddings=[[0, LENGTH - tf.shape(audio)[0]]],
+                               mode='SYMMETRIC')
             else:
-                audio = tf.pad(audio, 
-                            paddings=[[0, LENGTH - tf.shape(audio)[0]]],
-                            mode='CONSTANT')
+                audio = tf.pad(audio,
+                               paddings=[[0, LENGTH - tf.shape(audio)[0]]],
+                               mode='CONSTANT')
 
         if self.split == 'train':
             audio = self.augment_data(audio)
@@ -127,7 +127,8 @@ class CoswaraCovidDataset:
 
         image = tf.cast(image, tf.float32) / 255.0
         image = tf.expand_dims(image, axis=-1)
-        image.set_shape([n_mels, None, 1])  # Maintain static shape for batching
+        # Maintain static shape for batching
+        image.set_shape([n_mels, None, 1])
 
         # Convert label processing to TensorFlow operations
         label = tf.cond(
@@ -138,6 +139,7 @@ class CoswaraCovidDataset:
         label = tf.one_hot(label, depth=2)
 
         return image, label
+
     def get_dataset(self):
         """Builds and returns the tf.data.Dataset."""
         if self.dataset is None:
@@ -156,8 +158,8 @@ class CoswaraCovidDataset:
 
         # The dataset should now yield tuples of (audio, label).
         # We can map over the dataset directly.
-        data = self.dataset.map(self.create_features,
-                                num_parallel_calls=tf.data.AUTOTUNE)
+        data = self.dataset.map(lambda x, y: self.create_features(
+            [x, y]), num_parallel_calls=tf.data.AUTOTUNE).shuffle(BATCH_SIZE * 20)
 
         # The rest of the code is unchanged
         data = data.shuffle(self.BATCH_SIZE * 10)
