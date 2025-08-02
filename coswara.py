@@ -79,8 +79,10 @@ class Coswara(tfds.core.GeneratorBasedBuilder):
                 'label': tfds.features.ClassLabel(names=['healthy', 'positive_moderate', 'positive_mild', 'positive_asymp']),
                 'audio': tfds.features.Audio(file_format='wav', sample_rate=SAMPLE_RATE),
                 'user_id': tfds.features.Text(),
+                'age': tfds.features.Scalar(dtype=tf.int64),
+                'sex': tfds.features.ClassLabel(names=['male', 'female', 'other']),
             }),
-            supervised_keys=('audio', 'label'),
+            supervised_keys=None,  # ('audio', 'label'),
             homepage='https://coswara.iisc.ac.in/?locale=en-US',
             citation=_CITATION,
         )
@@ -124,18 +126,24 @@ class Coswara(tfds.core.GeneratorBasedBuilder):
 
             label_file = user_dir / 'label.txt'
             wav_files = list(user_dir.glob('*.wav'))
+            metadata_file = user_dir / 'metadata.csv'
 
             if not label_file.exists():
                 logging.warning(
                     f"  -> FAIL: 'label.txt' not found in {user_dir.name}.")
                 continue
-            if not wav_files:
+            if not all([label_file.exists(), wav_files, metadata_file.exists()]):
                 logging.warning(
-                    f"  -> FAIL: No '.wav' files found in {user_dir.name}.")
+                    f"Skipping {user_dir.name} due to missing files.")
                 continue
 
             audio_file = wav_files[0]
             try:
+                metadata = pd.read_csv(metadata_file).iloc[0]
+                age = int(metadata['age'])
+                # Ensure lowercase for consistency
+                sex = metadata['sex'].lower()
+
                 duration = AudioSegment.from_file(audio_file).duration_seconds
                 if duration >= self.builder_config.skip:
                     logging.info(
@@ -144,7 +152,9 @@ class Coswara(tfds.core.GeneratorBasedBuilder):
                     yield user_dir.name, {
                         'label': LABEL_MAP[open(label_file).read().strip()],
                         'audio': audio_file,
-                        'user_id': user_dir.name
+                        'user_id': user_dir.name,
+                        'age': age,
+                        'sex': sex,
                     }
                 else:
                     logging.warning(
