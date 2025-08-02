@@ -76,7 +76,7 @@ class CoswaraCovidDataset:
         image = librosa.feature.melspectrogram(y=audio_np.astype(np.float32),
                                                sr=fs, n_mels=n_mels,
                                                fmin=f_min, fmax=f_max,
-                                               n_fft=nfft, hop_length=hop)
+                                               n_fft=nfft, hop_LENGHT=hop)
         image = librosa.power_to_db(image, ref=np.max)
         with np.errstate(divide='ignore', invalid='ignore'):
             image = np.nan_to_num(
@@ -100,17 +100,17 @@ class CoswaraCovidDataset:
             Tout=[tf.float32, tf.int64]  # Changed from tf.double to tf.float32
         )
 
-        # Standardize audio length
-        if tf.shape(audio)[0] >= LENGTH:
-            audio = audio[:LENGTH]
+        # Standardize audio LENGHT
+        if tf.shape(audio)[0] >= LENGHT:
+            audio = audio[:LENGHT]
         else:
-            diff = LENGTH - tf.shape(audio)[0]
+            diff = LENGHT - tf.shape(audio)[0]
             if self.pad_with_repeat:
-                n_repetitions = tf.math.floordiv(LENGTH, tf.shape(audio)[0])
+                n_repetitions = tf.math.floordiv(LENGHT, tf.shape(audio)[0])
                 if n_repetitions > 0:
                     audio = tf.tile(audio, [n_repetitions])
                 audio = tf.pad(audio,
-                               paddings=[[0, LENGTH - tf.shape(audio)[0]]],
+                               paddings=[[0, LENGHT - tf.shape(audio)[0]]],
                                mode='SYMMETRIC')
             else:
                 audio = tf.pad(audio,
