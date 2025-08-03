@@ -6,7 +6,7 @@ from .resnet import resnet34, resnet18
 
 def respirenet(image_shape, tabular_shape, num_classes=2, resnet_body='34'):
     # --- Image Input Branch (ResNet backbone) ---
-    image_input = Input(shape=image_shape, name='spectrogram_input')
+    image_input = Input(shape=image_shape, name='image_input')
 
     # Select ResNet backbone
     backbone = resnet34(
@@ -16,7 +16,7 @@ def respirenet(image_shape, tabular_shape, num_classes=2, resnet_body='34'):
     x = Dropout(0.5)(x)
 
     # --- Tabular Data Branch ---
-    tabular_input = Input(shape=tabular_shape, name='patient_data_input')
+    tabular_input = Input(shape=tabular_shape, name='tabular_input')
     y = Dense(32, activation='relu')(tabular_input)
     y = BatchNormalization()(y)
     y = Dropout(0.3)(y)
