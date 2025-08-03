@@ -4,6 +4,8 @@ import librosa
 import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
+from pydub import AudioSegment
+from pydub.silence import detect_leading_trailing_silence
 
 # Import the custom dataset builder
 import coswara
@@ -57,6 +59,7 @@ class CoswaraCovidDataset:
             split=self.split, shuffle_files=True)
 
     def augment_data(self, audio):
+        print("type of audio is: ", type(audio))
         audio = tf.cast(audio, tf.float32)
         p_roll = tf.random.uniform(shape=[], dtype=tf.dtypes.float32)
         p_pitch_shift = tf.random.uniform(shape=[], dtype=tf.dtypes.float32)
