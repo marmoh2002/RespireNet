@@ -23,55 +23,22 @@ print("Dataset initialized and processed.")
 
 
 # --- 2. Visualize Spectrograms ---
-# In your main script (buildd.py)
-
-# --- 2. Visualize Spectrograms (Corrected Version) ---
-print("\nVisualizing a batch of spectrograms and features...")
+print("\nVisualizing a batch of spectrograms...")
 
 # Get one batch from the dataset
-# The first element 'features' is now a dictionary.
-for features, labels in dataset.take(1):
-    # --- UNPACK THE DICTIONARY ---
-    # Extract the image tensors and tabular data tensors from the dictionary
-    image_batch = features['image_input']
-    tabular_batch = features['tabular_input']
-
-    # Now you can use .shape on the tensors
-    print(f"Batch size: {image_batch.shape[0]}")
-    print(f"Image Tensor Shape: {image_batch.shape}")
-    print(f"Tabular Tensor Shape: {tabular_batch.shape}")
-    print(f"Labels Tensor Shape: {labels.shape}")
-
-    # --- VISUALIZE THE IMAGES ---
-    plt.figure(figsize=(15, 12))  # Increased figure size for better layout
-    for i in range(min(9, image_batch.shape[0])):  # Display up to 9 images
+for images, labels in dataset.take(1):
+    plt.figure(figsize=(15, 10))
+    for i in range(min(9, images.shape[0])):  # Display up to 9 images
         ax = plt.subplot(3, 3, i + 1)
-
-        # Get the specific image and tabular data for this example
-        spectrogram_tensor = image_batch[i]
-        tabular_features = tabular_batch[i]  # Shape: (4,)
-        label_one_hot = labels[i]
-
         # Squeeze the channel dimension for plotting
-        spectrogram = np.squeeze(spectrogram_tensor.numpy())
+        spectrogram = np.squeeze(images[i].numpy())
         plt.imshow(spectrogram.T, aspect='auto',
                    origin='lower', cmap='viridis')
 
-        # --- DECODE AND DISPLAY ALL INFO IN THE TITLE ---
         # Decode the one-hot encoded label
-        label_index = np.argmax(label_one_hot)
+        label_index = np.argmax(labels[i])
         label_name = 'COVID-19 Positive' if label_index == 1 else 'Healthy'
-
-        # Decode the tabular features (age and sex)
-        # Remember: age was normalized by 100, sex is one-hot encoded
-        age = int(tabular_features[0].numpy() * 100)
-        # Index of the '1' in the one-hot vector
-        sex_index = np.argmax(tabular_features[1:].numpy())
-        sex_map = {0: 'Male', 1: 'Female', 2: 'Other'}
-        sex = sex_map[sex_index]
-
-        # Create a detailed title
-        plt.title(f"Label: {label_name}\nAge: {age}, Sex: {sex}")
+        plt.title(f"Label: {label_name}")
         plt.xlabel("Time")
         plt.ylabel("Mels")
         plt.colorbar(format='%+2.0f dB')
