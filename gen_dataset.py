@@ -84,17 +84,23 @@ class CoswaraCovidDataset:
         image *= 255
         return image.astype(np.float32)
 
-    def create_features(self, audio, label):  # Remove the feature parameter
-        # Directly use audio and label parameters
+    def create_features(self, audio, label):
+        # Cast to float32 and apply bandpass filter
         audio = tf.cast(audio, tf.float32)
-        audio = tf.numpy_function(butter_bandpass_filter,
-                                  inp=[audio, lowcut, highcut, fs],
-                                  Tout=tf.double)
+        audio = tf.numpy_function(
+            butter_bandpass_filter,
+            inp=[audio, lowcut, highcut, fs],
+            Tout=tf.float32  # Changed from tf.double to tf.float32
+        )
 
-        audio, _ = tf.numpy_function(librosa.effects.trim,
-                                     inp=[audio, 20],
-                                     Tout=[tf.double, tf.int64])
+        # Trim audio - change output type to float32
+        audio, _ = tf.numpy_function(
+            librosa.effects.trim,
+            inp=[audio, 20],
+            Tout=[tf.float32, tf.int64]  # Changed from tf.double to tf.float32
+        )
 
+        # Standardize audio LENGHT
         if tf.shape(audio)[0] >= LENGHT:
             audio = audio[:LENGHT]
         else:
@@ -103,22 +109,30 @@ class CoswaraCovidDataset:
                 n_repetitions = tf.math.floordiv(LENGHT, tf.shape(audio)[0])
                 if n_repetitions > 0:
                     audio = tf.tile(audio, [n_repetitions])
-                audio = tf.pad(audio, paddings=[
-                               [0, LENGHT - tf.shape(audio)[0]]], mode='SYMMETRIC')
+                audio = tf.pad(audio,
+                               paddings=[[0, LENGHT - tf.shape(audio)[0]]],
+                               mode='SYMMETRIC')
             else:
-                audio = tf.pad(audio, paddings=[[0, diff]], mode='CONSTANT')
+                audio = tf.pad(audio,
+                               paddings=[[0, diff]],
+                               mode='CONSTANT')
 
+        # Apply augmentation for training
         if self.split == 'train':
             audio = self.augment_data(audio)
 
-        image = tf.numpy_function(self.create_melspectrogram,
-                                  inp=[audio],
-                                  Tout=tf.float32)
+        # Create mel-spectrogram
+        image = tf.numpy_function(
+            self.create_melspectrogram,
+            inp=[audio],
+            Tout=tf.float32
+        )
 
+        # Normalize and format image
         image = tf.cast(image, tf.float32) / 255.0
         image = tf.expand_dims(image, axis=-1)
 
-        # Convert label processing to TensorFlow operations
+        # Convert label to one-hot encoding
         label = tf.cond(
             tf.equal(label, 0),
             lambda: tf.constant(0),
