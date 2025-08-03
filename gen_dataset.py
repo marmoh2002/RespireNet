@@ -4,8 +4,8 @@ import librosa
 import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from pydub import AudioSegment
-from pydub.silence import detect_leading_trailing_silence
+# from pydub import AudioSegment
+# from pydub.silence import detect_leading_trailing_silence
 
 # Import the custom dataset builder
 import coswara
@@ -89,6 +89,7 @@ class CoswaraCovidDataset:
 
     def create_features(self, audio, label):
         # Cast to float32 and apply bandpass filter
+        
         audio = tf.cast(audio, tf.float32)
         audio = tf.numpy_function(
             butter_bandpass_filter,
