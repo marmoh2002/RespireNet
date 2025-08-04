@@ -30,9 +30,7 @@ _CITATION = """
 
 LABEL_MAP = {
     'healthy': 0,
-    'positive_moderate': 1,
-    'positive_mild': 2,
-    'positive_asymp': 3
+    'unhealthy':1
 }
 
 SAMPLE_RATE = 48000
@@ -76,7 +74,7 @@ class Coswara(tfds.core.GeneratorBasedBuilder):
             builder=self,
             description=_DESCRIPTION,
             features=tfds.features.FeaturesDict({
-                'label': tfds.features.ClassLabel(names=['healthy', 'positive_moderate', 'positive_mild', 'positive_asymp']),
+                'label': tfds.features.ClassLabel(names=['healthy', 'unhealthy']),
                 'audio': tfds.features.Audio(file_format='wav', sample_rate=SAMPLE_RATE),
                 'user_id': tfds.features.Text(),
             }),
