@@ -34,7 +34,8 @@ f_min = 50
 f_max = 4000
 nfft = 2048
 hop = 512
-
+time_steps = 1 + (LENGHT - nfft) // hop  # 1 + (336000 - 2048) // 512 = 653
+input_shape = (n_mels, time_steps, 1)    # (128, 653, 1)
 
 class CoswaraCovidDataset:
     def __init__(self, split='train', skip=2, mixup=True, data_dir="../data", pad_with_repeat=True):
@@ -130,19 +131,13 @@ class CoswaraCovidDataset:
         # Normalize and format image
         image = tf.cast(image, tf.float32) / 255.0
         image = tf.expand_dims(image, axis=-1)
-
-        # # Convert label to one-hot encoding
-        # label = tf.cond(
-        #     tf.equal(label, 0),
-        #     lambda: tf.constant(0),
-        #     lambda: tf.constant(1)
-        # )
-        # label = tf.one_hot(label, depth=2)
+        
         label = tf.cond(
             tf.equal(label, 0),  # Compare integers, not strings
             lambda: tf.constant(0),
             lambda: tf.constant(1)
         )
+        label = tf.one_hot(label, depth=2)
         return image, label
 
     def get_dataset(self):
