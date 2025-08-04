@@ -1,4 +1,4 @@
-from tensorflow.keras.layers import Conv2D, Dropout, Dense, ReLU, Input, Activation, Flatten, GlobalAveragePooling2D
+from tensorflow.keras.layers import Conv2D, Dropout, Dense, ReLU, Input, Activation, Flatten, GlobalAveragePooling2D, AveragePooling2D
 from tensorflow.keras import Model
 
 from .resnet import resnet34, resnet18
