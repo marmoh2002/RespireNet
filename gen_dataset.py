@@ -139,7 +139,7 @@ class CoswaraCovidDataset:
         # )
         # label = tf.one_hot(label, depth=2)
         label = tf.cond(
-            tf.equal(label, 'healthy'),  # Direct string comparison
+            tf.equal(label, 0),  # Compare integers, not strings
             lambda: tf.constant(0),
             lambda: tf.constant(1)
         )
