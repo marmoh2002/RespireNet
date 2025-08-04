@@ -138,7 +138,11 @@ class CoswaraCovidDataset:
         #     lambda: tf.constant(1)
         # )
         # label = tf.one_hot(label, depth=2)
-
+        label = tf.cond(
+            tf.equal(label, 'healthy'),  # Direct string comparison
+            lambda: tf.constant(0),
+            lambda: tf.constant(1)
+        )
         return image, label
 
     def get_dataset(self):
