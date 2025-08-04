@@ -131,13 +131,13 @@ class CoswaraCovidDataset:
         image = tf.cast(image, tf.float32) / 255.0
         image = tf.expand_dims(image, axis=-1)
 
-        # Convert label to one-hot encoding
-        label = tf.cond(
-            tf.equal(label, 0),
-            lambda: tf.constant(0),
-            lambda: tf.constant(1)
-        )
-        label = tf.one_hot(label, depth=2)
+        # # Convert label to one-hot encoding
+        # label = tf.cond(
+        #     tf.equal(label, 0),
+        #     lambda: tf.constant(0),
+        #     lambda: tf.constant(1)
+        # )
+        # label = tf.one_hot(label, depth=2)
 
         return image, label
 
