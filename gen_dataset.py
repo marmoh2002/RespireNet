@@ -37,12 +37,7 @@ hop = 512
 
 
 class CoswaraCovidDataset:
-    def __init__(self,
-                 split='train',
-                 skip=2,
-                 mixup=True,
-                 data_dir="../data",
-                 pad_with_repeat=True):
+    def __init__(self, split='train', skip=2, mixup=True, data_dir="../data", pad_with_repeat=True):
 
         self.split = split
         self.pad_with_repeat = pad_with_repeat
@@ -89,7 +84,7 @@ class CoswaraCovidDataset:
 
     def create_features(self, audio, label):
         # Cast to float32 and apply bandpass filter
-        
+
         audio = tf.cast(audio, tf.float32)
         audio = tf.numpy_function(
             butter_bandpass_filter,
